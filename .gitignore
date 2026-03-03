@@ -1,0 +1,18 @@
+# sim / synthesis artifacts
+simv
+simv.daidir/
+csrc/
+*.out
+*.log
+*.fsdb
+*.vcd
+*.key
+verdiLog/
+verdi_config_file
+*.jou
+*.rc
+novas.conf
+novas_dump.log
+.vcs_checkpoint_shared_memory.*
+inter.fsdb.*
+program.out
