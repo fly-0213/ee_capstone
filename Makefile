@@ -59,8 +59,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = scheduler_tb.sv
-SOURCES     = scheduler.sv
+TESTBENCH   = fifo_test.sv
+SOURCES     = fifo.sv
 SYNTH_FILES = 
 MODULE_TOP  = 
 
