@@ -59,8 +59,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = mock_test.sv
-SOURCES     = mock_adc.sv mock_i2c.sv
+TESTBENCH   = scheduler_tb.sv
+SOURCES     = scheduler.sv
 SYNTH_FILES = 
 MODULE_TOP  = 
 

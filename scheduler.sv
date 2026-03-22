@@ -1,13 +1,13 @@
 module scheduler#(parameter int SENS_NUM=4)(
-    input                         clk,
-    input                         reset,
-    input                         start_pulse,
-    input                         stop_pulse,
-    input                         sens_valid,
+    input                               clk,
+    input                               reset,
+    input                               start_pulse,
+    input                               stop_pulse,
+    input                               sens_valid,
     //input                         sens_busy,
     
-    output                        sens_req,
-    output  [$clog2(SENS_NUM)-1:0]sens_id,
+    output  logic                       sens_req,
+    output  logic [$clog2(SENS_NUM)-1:0]sens_id
 );
 
     localparam logic [1:0] S_IDLE       = 2'b00;

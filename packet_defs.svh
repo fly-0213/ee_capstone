@@ -2,20 +2,14 @@
 `ifndef PACKET_DEFS_SVH
 `define PACKET_DEFS_SVH
 
-localparam int PACK_W   = 128;
+//localparam int PACK_W   = 128;
 localparam int HEAD_W   = 16;
 localparam int SENSOR_W = 4;
 localparam int TS_W     = 32;
 localparam int DATA_W   = 52;
 localparam int FLAG_W   = 8;
 localparam int CRC_W    = 16;
-
-// sanity check
-initial begin
-  if (HEAD_W + SENSOR_W + TS_W + DATA_W + FLAG_W + CRC_W != PACK_W) begin
-    $error("Packet width mismatch!");
-  end
-end
+localparam int PACK_W   = HEAD_W + SENSOR_W + TS_W + DATA_W + FLAG_W + CRC_W;
 
 localparam logic [HEAD_W-1:0] HEAD_MAGIC = 16'hA5A5;
 

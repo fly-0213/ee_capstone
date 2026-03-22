@@ -37,8 +37,7 @@ module scheduler_tb;
         start_pulse = 0;
         stop_pulse  = 0;
 
-        sens_valid  = 0;
-        sens_busy   = 0;
+        //sens_busy   = 0;
 
         // hold reset for a few cycles
         repeat (5) @(posedge clk);
@@ -120,7 +119,7 @@ module scheduler_tb;
                 pending    <= 1'b1;
                 pending_id <= sens_id;
                 countdown  <= delay_for_id(sens_id);
-                sens_busy  <= 1'b1;
+                //sens_busy  <= 1'b1;
             end
 
             // progress the pending transaction
@@ -129,7 +128,7 @@ module scheduler_tb;
                     countdown <= countdown - 1;
                 end else begin
                     // done: drop busy, pulse valid
-                    sens_busy  <= 1'b0;
+                    //sens_busy  <= 1'b0;
                     sens_valid <= 1'b1;
                     pending    <= 1'b0;
                 end
