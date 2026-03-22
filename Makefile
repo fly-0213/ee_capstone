@@ -59,8 +59,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = fifo_test.sv
-SOURCES     = fifo.sv
+TESTBENCH   = pkt_serializer_tb.sv
+SOURCES     = pkt_serializer.sv
 SYNTH_FILES = 
 MODULE_TOP  = 
 
