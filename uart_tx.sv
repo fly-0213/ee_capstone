@@ -1,10 +1,10 @@
 `include "packet_defs.svh"
 module uart_tx#(parameter int CLKS_PER_BIT = CLK_FREQ / BAUD_RATE
 )(
-    input              clk,
-    input              reset,
-    input       tx_valid,
-    input [7:0] tx_data,
+    input         clk,
+    input         reset,
+    input         tx_valid,
+    input   [7:0] tx_data,
 
     output logic  tx_serial,
     output logic  tx_busy,
