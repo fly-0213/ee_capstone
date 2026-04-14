@@ -50,7 +50,7 @@ module ads1115_ctrl (
     logic [$clog2(CONV_WAIT_CYCLES+1)-1:0] conv_wait_cnt;
 
     // state register
-    always_ff @(posedge clk or posedge reset) begin
+    always_ff @(posedge clk) begin
         if (reset) begin
             state <= S_IDLE;
         end else begin
@@ -115,7 +115,7 @@ module ads1115_ctrl (
     end
 
     // sequential data path
-    always_ff @(posedge clk or posedge reset) begin
+    always_ff @(posedge clk) begin
         if (reset) begin
             conv_wait_cnt <= '0;
             data_out      <= 16'd0;

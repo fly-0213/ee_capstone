@@ -24,9 +24,6 @@ module mpl3115_ctrl (
     output logic        error
 );
 
-    //==================================================
-    // MPL3115A2 constants
-    //==================================================
 
     // 7-bit I2C address
     localparam logic [6:0] MPL3115_ADDR    = 7'h60;
@@ -56,9 +53,6 @@ module mpl3115_ctrl (
     // 0x2B = 0010_1011
     //      = barometer + OSR=32 + OST=1 + SBYB=1
 
-    //==================================================
-    // FSM state definition
-    //==================================================
 
     typedef enum logic [3:0] {
         S_IDLE                   = 4'd0,
@@ -80,31 +74,19 @@ module mpl3115_ctrl (
 
     state_t state, next_state;
 
-    //==================================================
-    // Internal registers
-    //==================================================
-
     logic [7:0]  status_reg;
     logic [39:0] rx_data;
 
     logic [7:0] p_msb, p_csb, p_lsb;
     logic [7:0] t_msb, t_lsb;
 
-    //==================================================
-    // State register
-    //==================================================
-
-    always_ff @(posedge clk or posedge reset) begin
+    always_ff @(posedge clk) begin
         if (reset) begin
             state <= S_IDLE;
         end else begin
             state <= next_state;
         end
     end
-
-    //==================================================
-    // Next-state logic
-    //==================================================
 
     always_comb begin
         next_state = state;
@@ -206,11 +188,7 @@ module mpl3115_ctrl (
         endcase
     end
 
-    //==================================================
-    // Sequential datapath
-    //==================================================
-
-    always_ff @(posedge clk or posedge reset) begin
+    always_ff @(posedge clk) begin
         if (reset) begin
             status_reg    <= 8'd0;
             rx_data       <= 40'd0;
@@ -257,9 +235,6 @@ module mpl3115_ctrl (
         end
     end
 
-    //==================================================
-    // Output logic
-    //==================================================
 
     always_comb begin
         i2c_start     = 1'b0;

@@ -59,8 +59,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = pkt_serializer_tb.sv
-SOURCES     = pkt_serializer.sv
+TESTBENCH   = uart_tx_tb.sv
+SOURCES     = uart_tx.sv
 SYNTH_FILES = 
 MODULE_TOP  = 
 

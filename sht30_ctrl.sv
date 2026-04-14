@@ -52,7 +52,7 @@ module sht30_ctrl (
     logic [$clog2(MEAS_WAIT_CYCLES+1)-1:0] meas_wait_cnt;
     logic [47:0] rx_data;
 
-    always_ff @(posedge clk or posedge reset) begin
+    always_ff @(posedge clk) begin
         if (reset) begin
             state <= S_IDLE;
         end else begin
@@ -66,8 +66,9 @@ module sht30_ctrl (
 
         case (state)
             S_IDLE: begin
-                if (start)
+                if (start) begin
                     next_state = S_SEND_CMD;
+                end 
             end
 
             S_SEND_CMD: begin
@@ -76,10 +77,12 @@ module sht30_ctrl (
 
             S_WAIT_CMD_DONE: begin
                 if (i2c_done) begin
-                    if (i2c_ack_error)
+                    if (i2c_ack_error) begin
                         next_state = S_ERROR;
-                    else
+                    end 
+                    else begin
                         next_state = S_WAIT_MEAS;
+                    end 
                 end
             end
 
