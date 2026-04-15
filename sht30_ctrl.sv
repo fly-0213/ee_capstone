@@ -124,7 +124,7 @@ module sht30_ctrl (
     end
 
 
-    always_ff @(posedge clk or posedge reset) begin
+    always_ff @(posedge clk) begin
         if (reset) begin
             meas_wait_cnt <= '0;
             rx_data       <= 48'd0;
