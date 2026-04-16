@@ -59,8 +59,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = uart_tx_tb.sv
-SOURCES     = uart_tx.sv
+TESTBENCH   = i2c_master_tb.sv
+SOURCES     = i2c_master.sv
 SYNTH_FILES = 
 MODULE_TOP  = 
 

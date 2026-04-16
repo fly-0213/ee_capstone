@@ -44,10 +44,10 @@ typedef struct packed {
 } packet_t;
 
 typedef enum logic [SENSOR_W-1:0] {
-  S_LIGHT = 4'h0,
-  S_TEMP  = 4'h1,
-  S_AIR   = 4'h2,
-  S_HUMN  = 4'h3
+  S_NONE    = 4'h0,
+  S_ADS1115 = 4'h1,
+  S_SHT30   = 4'h2,
+  S_MPL3115 = 4'h3
 } sensor_id_t;
 
 `endif

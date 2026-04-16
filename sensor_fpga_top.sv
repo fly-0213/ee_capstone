@@ -56,6 +56,65 @@ module sensor_fpga_top (
     logic                    tx_busy;
     logic                    tx_done;
 
+
+    logic        ads_start;
+    logic        ads_i2c_busy;
+    logic        ads_i2c_done;
+    logic [15:0] ads_i2c_rdata;
+    logic        ads_i2c_ack_error;
+
+    logic        ads_i2c_start;
+    logic        ads_i2c_rw;         
+    logic [6:0]  ads_i2c_dev_addr;
+    logic [7:0]  ads_i2c_reg_addr;
+    logic [1:0]  ads_i2c_num_bytes;   
+    logic [15:0] ads_i2c_wdata;
+
+    logic        ads_busy;
+    logic        ads_data_valid;
+    logic [15:0] ads_data_out;
+    logic        ads_error;
+
+    logic        sht_start;
+    logic        sht_i2c_busy;
+    logic        sht_i2c_done;
+    logic [47:0] sht_i2c_rdata;
+    logic        sht_i2c_ack_error;
+
+    logic        sht_i2c_start;
+    logic        sht_i2c_rw;         
+    logic [6:0]  sht_i2c_dev_addr;
+    logic [2:0]  sht_i2c_num_bytes;   
+    logic [15:0] sht_i2c_wdata;
+
+    logic        sht_busy;
+    logic        sht_data_valid;
+    logic [15:0] sht_temp_raw;
+    logic [15:0] sht_hum_raw;
+    logic        sht_error;
+
+    logic        mpl_start;
+    logic        mpl_i2c_busy;
+    logic        mpl_i2c_done;
+    logic [39:0] mpl_i2c_rdata;
+    logic        mpl_i2c_ack_error;
+
+    logic        mpl_i2c_start;
+    logic        mpl_i2c_rw;         
+    logic [6:0]  mpl_i2c_dev_addr;
+    logic [7:0]  mpl_i2c_reg_addr;
+    logic [2:0]  mpl_i2c_num_bytes;   
+    logic [7:0]  mpl_i2c_wdata;
+
+    logic        mpl_busy;
+    logic        mpl_data_valid;
+    logic [19:0] mpl_temp_raw;
+    logic [11:0] mpl_pressure_raw;
+    logic        mpl_error;
+
+ 
+
+
     //////////////////////////////////////////////////
     //                                              //
     //               timestamp counter              //
@@ -93,6 +152,77 @@ module sensor_fpga_top (
     //          latch active requested sensor       //
     //                                              //
     //////////////////////////////////////////////////
+
+
+    ads1115_ctrl u_ads1115_ctrl(
+        .clk(clk),
+        .reset(reset),
+
+        .start(ads_start),
+        .i2c_busy(ads_i2c_busy),
+        .i2c_done(ads_i2c_done),
+        .i2c_rdata(ads_i2c_rdata),
+        .i2c_ack_error(ads_i2c_ack_error),
+
+        .i2c_start(ads_i2c_start),
+        .i2c_rw(ads_i2c_rw),          
+        .i2c_dev_addr(ads_i2c_dev_addr),
+        .i2c_reg_addr(ads_i2c_reg_addr),
+        .i2c_num_bytes(ads_i2c_num_bytes), 
+        .i2c_wdata(ads_i2c_wdata),
+
+        .busy(ads_busy),
+        .data_valid(ads_data_valid),
+        .data_out(ads_data_out),
+        .error(ads_error)
+    );
+
+    sht30_ctrl u_sht30_ctrl(
+        .clk(clk),
+        .reset(reset),
+
+        .start(sht_start),
+        .i2c_busy(sht_i2c_busy),
+        .i2c_done(sht_i2c_done),
+        .i2c_rdata(sht_i2c_rdata),
+        .i2c_ack_error(sht_i2c_ack_error),
+
+        .i2c_start(sht_i2c_start),
+        .i2c_rw(sht_i2c_rw),          
+        .i2c_dev_addr(sht_i2c_dev_addr),
+        .i2c_wdata(sht_i2c_wdata),
+        .i2c_num_bytes(sht_i2c_num_bytes), 
+
+        .busy(sht_busy),
+        .data_valid(sht_data_valid),
+        .temp_raw(sht_temp_raw),
+        .hum_raw(sht_hum_raw),
+        .error(sht_error)
+    );
+
+    mpl3115_ctrl u_mpl3115_ctrl(
+        .clk(clk),
+        .reset(reset),
+
+        .start(mpl_start),
+        .i2c_busy(mpl_i2c_busy),
+        .i2c_done(mpl_i2c_done),
+        .i2c_rdata(mpl_i2c_rdata),
+        .i2c_ack_error(mpl_i2c_ack_error),
+
+        .i2c_start(mpl_i2c_start),
+        .i2c_rw(mpl_i2c_rw),          
+        .i2c_dev_addr(mpl_i2c_dev_addr),
+        .i2c_reg_addr(mpl_i2c_reg_addr),
+        .i2c_num_bytes(mpl_i2c_num_bytes), 
+        .i2c_wdata(mpl_i2c_wdata),
+
+        .busy(mpl_busy),
+        .data_valid(mpl_data_valid),
+        .pressure_raw(mpl_pressure_raw),
+        .temp_raw(mpl_temp_raw),
+        .error(mpl_error)
+    );
 
     // When a request is actually issued, remember which sensor it was.
     // Later, when sensor_data_valid comes back, packetizer uses active_sensor_id.
