@@ -66,6 +66,12 @@ module i2c_master (
     logic[7:0]   send_byte;
     logic        tick;
     logic        ack_sample;
+    logic        cmd_rw;
+    logic [6:0]  cmd_dev_addr;
+    logic [7:0]  cmd_reg_addr;
+    logic [2:0]  cmd_num_bytes;
+    logic [15:0] cmd_wdata;
+    logic        cmd_use_reg_addr;
 
 
     always_ff @(posedge clk) begin
@@ -85,6 +91,12 @@ module i2c_master (
             scl         <= 1'b1;
             sda_oe      <= 1'b0;
             sda_out_low <= 1'b1;
+            cmd_rw          <= 1'b0;
+            cmd_dev_addr    <= '0;
+            cmd_reg_addr    <= '0;
+            cmd_num_bytes   <= '0;
+            cmd_wdata       <= '0;
+            cmd_use_reg_addr<= 1'b0;
         end else if (tick) begin
             if (state == S_IDLE) begin
                 busy <= '0;
@@ -99,6 +111,12 @@ module i2c_master (
                     rdata      <= '0;
                     ack_sample <= 1'b0;
                     subphase   <= SUB_0;
+                    cmd_rw           <= rw;
+                    cmd_dev_addr     <= dev_addr;
+                    cmd_reg_addr     <= reg_addr;
+                    cmd_num_bytes    <= num_bytes;
+                    cmd_wdata        <= wdata;
+                    cmd_use_reg_addr <= use_reg_addr;
                     if (!rw) begin
                         phase <= PH_ADDR_W;
                     end 
@@ -196,7 +214,7 @@ module i2c_master (
                             subphase <= SUB_0;
                             case (phase)
                                 PH_ADDR_W: begin
-                                    if (use_reg_addr) begin
+                                    if (cmd_use_reg_addr) begin
                                         state <= S_SEND_BYTE;
                                         phase <= PH_REG;
                                     end else begin
@@ -205,7 +223,7 @@ module i2c_master (
                                     end
                                 end
                                 PH_REG: begin
-                                    if (rw) begin
+                                    if (cmd_rw) begin
                                         state <= S_RESTART;
                                         phase <= PH_ADDR_R;
                                     end else begin
@@ -215,7 +233,7 @@ module i2c_master (
                                 end
                                 PH_WRITE_DATA: begin 
                                     byt_cnt <= byt_cnt + 1'b1;
-                                    if (byt_cnt + 1 == num_bytes) begin
+                                    if (byt_cnt + 1 == cmd_num_bytes) begin
                                         state <= S_STOP;
                                     end else begin
                                         state <= S_SEND_BYTE;
@@ -301,7 +319,7 @@ module i2c_master (
                 case (subphase) 
                     SUB_0: begin
                         scl <= 1'b0;
-                        if (byt_cnt == num_bytes) begin
+                        if (byt_cnt == cmd_num_bytes) begin
                             sda_oe <= 1'b0;
                         end 
                         else begin
@@ -320,7 +338,7 @@ module i2c_master (
                     end
                     SUB_3: begin
                         scl <= 1'b0;
-                        if (byt_cnt == num_bytes) begin
+                        if (byt_cnt == cmd_num_bytes) begin
                             state <= S_STOP;
                         end 
                         else begin
@@ -373,20 +391,20 @@ module i2c_master (
         case (state)
             S_SEND_BYTE: begin
                 if (phase == PH_ADDR_W)
-                    send_byte = {dev_addr, 1'b0};
+                    send_byte = {cmd_dev_addr, 1'b0};
                 else if (phase == PH_ADDR_R)
-                    send_byte = {dev_addr, 1'b1}; 
+                    send_byte = {cmd_dev_addr, 1'b1}; 
                 if (phase == PH_REG) begin
-                    send_byte = reg_addr;
+                    send_byte = cmd_reg_addr;
                 end 
                 if (phase == PH_WRITE_DATA) begin
-                    if (num_bytes == 3'd1) begin
-                        send_byte = wdata[7:0];
+                    if (cmd_num_bytes == 3'd1) begin
+                        send_byte = cmd_wdata[7:0];
                     end else begin
                         if (byt_cnt == '0)
-                            send_byte = wdata[15:8];
+                            send_byte = cmd_wdata[15:8];
                         else
-                            send_byte = wdata[7:0];
+                            send_byte = cmd_wdata[7:0];
                     end
                 end
             end 

@@ -15,6 +15,8 @@ localparam logic [HEAD_W-1:0] HEAD_MAGIC = 16'hA5A5;
 localparam logic CLK_FREQ = 50000000; //可改
 localparam logic BAUD_RATE = 115200; //可改
 
+localparam int SENS_NUM   = 3;
+
 // bit ranges (MSB:LSB)
 localparam int HEAD_MSB = PACK_W-1;
 localparam int HEAD_LSB = PACK_W-HEAD_W;

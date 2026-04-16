@@ -69,7 +69,12 @@ module ads1115_ctrl (
             end
 
             S_WRITE_CFG: begin
-                next_state = S_WAIT_CFG_DONE;
+                if (i2c_busy) begin
+                    next_state = S_WAIT_CFG_DONE;
+                end 
+                else begin
+                    next_state = S_WRITE_CFG;
+                end 
             end
 
             S_WAIT_CFG_DONE: begin
@@ -87,7 +92,12 @@ module ads1115_ctrl (
             end
 
             S_READ_CONV: begin
-                next_state = S_WAIT_READ_DONE;
+                if (i2c_busy) begin
+                    next_state = S_WAIT_READ_DONE;
+                end 
+                else begin
+                    next_state = S_READ_CONV;
+                end 
             end
 
             S_WAIT_READ_DONE: begin

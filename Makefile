@@ -60,8 +60,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = test/i2c_master_tb.sv
-SOURCES     = verilog/i2c_master.sv verilog/time.sv 
+TESTBENCH   = test/sensor_chain_ads_tb.sv
+SOURCES     = verilog/sensor_result_mux.sv verilog/time.sv verilog/i2c_master.sv verilog/sensor_i2c_mux.sv verilog/ads1115_ctrl.sv
 SYNTH_FILES = 
 MODULE_TOP  = 
 
