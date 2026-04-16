@@ -34,7 +34,8 @@ export CLOCK_PERIOD = 10000.0
 
 # the Verilog Compiler command and arguments
 VCS = SW_VCS=2020.12-SP2-1 vcs -sverilog +vc -Mupdate -line -full64 -kdb -lca -nc \
-      -debug_access+all+reverse $(VCS_BAD_WARNINGS) +define+CLOCK_PERIOD=$(CLOCK_PERIOD)ps
+      -debug_access+all+reverse $(VCS_BAD_WARNINGS) +define+CLOCK_PERIOD=$(CLOCK_PERIOD)ps \
+      +incdir+. +incdir+./verilog +incdir+./test
 # a SYNTH define is added when compiling for synthesis that can be used in testbenches
 
 # remove certain warnings that generate MB of text but can be safely ignored
@@ -59,8 +60,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = i2c_master_tb.sv
-SOURCES     = i2c_master.sv
+TESTBENCH   = test/i2c_master_tb.sv
+SOURCES     = verilog/i2c_master.sv verilog/time.sv 
 SYNTH_FILES = 
 MODULE_TOP  = 
 

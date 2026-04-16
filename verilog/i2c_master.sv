@@ -82,6 +82,9 @@ module i2c_master (
             done      <= '0;
             busy      <= '0;
             ack_sample <= 1'b0;
+            scl         <= 1'b1;
+            sda_oe      <= 1'b0;
+            sda_out_low <= 1'b1;
         end else if (tick) begin
             if (state == S_IDLE) begin
                 busy <= '0;
@@ -160,6 +163,7 @@ module i2c_master (
                         else begin
                             subphase <= SUB_0;
                             w_bit_cnt <= '0;
+                            scl <= 1'b0;
                             state <= S_GET_ACK;
                         end 
                     end
