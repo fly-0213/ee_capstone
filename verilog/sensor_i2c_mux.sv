@@ -159,7 +159,7 @@ module sensor_i2c_mux(
             S_ADS1115: begin
                 ads_i2c_busy = mas_busy;
                 ads_i2c_done = mas_done;    
-                ads_i2c_rdata = mas_rdata[15:0];
+                ads_i2c_rdata = mas_rdata[47:32];
                 ads_i2c_ack_error = mas_ack_error;
             end
             S_SHT30: begin
@@ -171,7 +171,7 @@ module sensor_i2c_mux(
             S_MPL3115: begin
                 mpl_i2c_busy = mas_busy;
                 mpl_i2c_done = mas_done;    
-                mpl_i2c_rdata = mas_rdata[39:0];
+                mpl_i2c_rdata = mas_rdata[47:8];
                 mpl_i2c_ack_error = mas_ack_error;
             end 
         endcase  
