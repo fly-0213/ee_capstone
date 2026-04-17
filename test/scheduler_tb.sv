@@ -1,165 +1,323 @@
 `timescale 1ns/1ps
 
 module scheduler_tb;
-    localparam int SENS_NUM = 4;
+
+    localparam int SENS_NUM = 3;
+
     logic clk;
     logic reset;
     logic start_pulse;
     logic stop_pulse;
+    logic result_valid;
+    logic result_error;
 
-    // handshake with sensor interface (mocked here)
-    logic sens_valid;
-    //logic sens_busy;
     logic sens_req;
     logic [$clog2(SENS_NUM)-1:0] sens_id;
+
+    int test_pass;
+    int test_fail;
+
+    logic prev_sens_req;
+    logic [$clog2(SENS_NUM)-1:0] prev_sens_id;
+    logic [1:0] prev_state;
 
     scheduler #(.SENS_NUM(SENS_NUM)) dut (
         .clk(clk),
         .reset(reset),
         .start_pulse(start_pulse),
         .stop_pulse(stop_pulse),
-        .sens_valid(sens_valid),
-        //.sens_busy(sens_busy),
+        .result_valid(result_valid),
+        .result_error(result_error),
         .sens_req(sens_req),
         .sens_id(sens_id)
     );
 
-    initial clk = 0;
+    initial clk = 1'b0;
     always #5 clk = ~clk;
 
-    initial begin
-        $dumpfile("scheduler_tb.vcd");
-        $dumpvars(0, scheduler_tb);
+    always @(posedge clk) begin
+        if (reset) begin
+            prev_sens_req <= sens_req;
+            prev_sens_id  <= sens_id;
+            prev_state    <= dut.state;
+        end else begin
+            if (sens_req != prev_sens_req ||
+                sens_id  != prev_sens_id  ||
+                dut.state != prev_state) begin
+                $display("@@@[TRACE] t=%0t state=%0d cur_id=%0d sens_id=%0d sens_req=%0b stop_pending=%0b result_valid=%0b result_error=%0b",
+                         $time, dut.state, dut.cur_id, sens_id, sens_req, dut.stop_pending,
+                         result_valid, result_error);
+            end
+
+            prev_sens_req <= sens_req;
+            prev_sens_id  <= sens_id;
+            prev_state    <= dut.state;
+        end
     end
 
-    initial begin
-        reset       = 1;
-        start_pulse = 0;
-        stop_pulse  = 0;
+   
+    task automatic check(input bit cond, input string msg);
+        begin
+            if (cond) begin
+                $display("@@@[PASS] %s", msg);
+                test_pass++;
+            end else begin
+                $display("@@@[FAIL] %s", msg);
+                test_fail++;
+            end
+        end
+    endtask
 
-        //sens_busy   = 0;
+    task automatic apply_reset();
+        begin
+            reset        = 1'b1;
+            start_pulse  = 1'b0;
+            stop_pulse   = 1'b0;
+            result_valid = 1'b0;
+            result_error = 1'b0;
 
-        // hold reset for a few cycles
-        repeat (5) @(posedge clk);
-        reset = 0;
-
-        // wait a bit, then "UI click Start"
-        repeat (3) @(posedge clk);
-        pulse_start();
-
-        // let it poll for a while
-        repeat (80) @(posedge clk);
-
-        // "UI click Stop" 
-        pulse_stop();
-
-        // run a bit more to observe it stopping
-        repeat (30) @(posedge clk);
-
-        $display("@@@TB finished. Check waveform scheduler_tb.vcd");
-        $finish;
-    end
+            repeat (5) @(posedge clk);
+            reset = 1'b0;
+            repeat (2) @(posedge clk);
+        end
+    endtask
 
     task automatic pulse_start();
         begin
+            $display("@@@[TB] pulse_start at t=%0t", $time);
+            start_pulse = 1'b1;
             @(posedge clk);
-            start_pulse <= 1'b1;
-            @(posedge clk);
-            start_pulse <= 1'b0;
+            #1;
+            start_pulse = 1'b0;
         end
     endtask
 
     task automatic pulse_stop();
         begin
+            $display("@@@[TB] pulse_stop at t=%0t", $time);
+            stop_pulse = 1'b1;
             @(posedge clk);
-            stop_pulse <= 1'b1;
-            @(posedge clk);
-            stop_pulse <= 1'b0;
+            #1;
+            stop_pulse = 1'b0;
         end
     endtask
 
-    // -------------------------
-    // Mock sensor interface behavior
-    //
-    // Semantics:
-    // - When DUT raises sens_req (1-cycle pulse), capture current sens_id
-    // - Raise sens_busy for a few cycles
-    // - After a sensor-dependent delay, raise sens_valid for 1 cycle
-    //
-    // This makes polling visible & deterministic in waveform.
-    // -------------------------
-    logic pending;
-    logic [$clog2(SENS_NUM)-1:0] pending_id;
-    int countdown;
+    task automatic pulse_result_valid();
+        begin
+            $display("@@@[TB] pulse_result_valid at t=%0t", $time);
+            result_valid = 1'b1;
+            @(posedge clk);
+            #1;
+            result_valid = 1'b0;
+        end
+    endtask
 
-    // choose different delays per sensor to make waveform obvious
-    function automatic int delay_for_id(input logic [$clog2(SENS_NUM)-1:0] id);
-        case (id)
-            0: delay_for_id = 2;
-            1: delay_for_id = 4;
-            2: delay_for_id = 3;
-            3: delay_for_id = 5;
-            default: delay_for_id = 3;
-        endcase
-    endfunction
+    task automatic pulse_result_error();
+        begin
+            $display("@@@[TB] pulse_result_error at t=%0t", $time);
+            result_error = 1'b1;
+            @(posedge clk);
+            #1;
+            result_error = 1'b0;
+        end
+    endtask
 
-    always_ff @(posedge clk) begin
-        if (reset) begin
-            pending     <= 1'b0;
-            pending_id  <= '0;
-            countdown   <= 0;
-            //sens_busy   <= 1'b0;
-            sens_valid  <= 1'b0;
-        end else begin
-            // default: valid is a pulse
-            sens_valid <= 1'b0;
+    task automatic wait_for_req_and_check_id(
+        input logic [$clog2(SENS_NUM)-1:0] exp_id,
+        input string msg
+    );
+        begin
+            wait(sens_req == 1'b1);
+            check(sens_id == exp_id, msg);
+            @(posedge clk);
+        end
+    endtask
 
-            // accept a new request only if nothing pending
-            if (sens_req && !pending) begin
-                pending    <= 1'b1;
-                pending_id <= sens_id;
-                countdown  <= delay_for_id(sens_id);
-                //sens_busy  <= 1'b1;
-            end
+    task automatic check_req_one_pulse(input string msg);
+        begin
+            #1;
+            check(sens_req == 1'b0, msg);
+        end
+    endtask
 
-            // progress the pending transaction
-            if (pending) begin
-                if (countdown > 0) begin
-                    countdown <= countdown - 1;
-                end else begin
-                    // done: drop busy, pulse valid
-                    //sens_busy  <= 1'b0;
-                    sens_valid <= 1'b1;
-                    pending    <= 1'b0;
-                end
+    // =========================================================
+    // TEST 1
+    // start -> first issue
+    // =========================================================
+    task automatic test_start_first_issue();
+        begin
+            $display("\n================ TEST 1: start -> first issue ================");
+
+            pulse_start();
+
+            wait(sens_req == 1'b1);
+            check(dut.state == dut.S_WAIT, "scheduler enters WAIT after first issue");
+            check(sens_id == 0, "first issued sensor is 0");
+            @(posedge clk);
+            check_req_one_pulse("sens_req is only one clock pulse on first issue");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 2
+    // round robin by result_valid
+    // expected: 0 -> 1 -> 2 -> 0
+    // =========================================================
+    task automatic test_round_robin_valid();
+        begin
+            $display("\n================ TEST 2: round robin with result_valid ================");
+
+            pulse_start();
+
+            wait_for_req_and_check_id(0, "round 1 sensor id = 0");
+            check(dut.state == dut.S_WAIT, "state is WAIT after issuing sensor 0");
+            check_req_one_pulse("sens_req cleared after issuing sensor 0");
+
+            pulse_result_valid();
+            wait_for_req_and_check_id(1, "round 2 sensor id = 1");
+            check_req_one_pulse("sens_req cleared after issuing sensor 1");
+
+            pulse_result_valid();
+            wait_for_req_and_check_id(2, "round 3 sensor id = 2");
+            check_req_one_pulse("sens_req cleared after issuing sensor 2");
+
+            pulse_result_valid();
+            wait_for_req_and_check_id(0, "round 4 sensor id wraps back to 0");
+            check_req_one_pulse("sens_req cleared after issuing wrapped sensor 0");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 3
+    // result_error should also count as done
+    // =========================================================
+    task automatic test_error_as_done();
+        begin
+            $display("\n================ TEST 3: result_error acts as sens_done ================");
+
+            pulse_start();
+
+            wait_for_req_and_check_id(0, "first issue sensor id = 0");
+            pulse_result_error();
+
+            wait_for_req_and_check_id(1, "scheduler advances on result_error");
+            check_req_one_pulse("sens_req cleared after issuing next sensor after error");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 4
+    // no done -> should stay in WAIT and not advance
+    // =========================================================
+    task automatic test_hold_in_wait_without_done();
+        begin
+            begin
+                $display("\n================ TEST 4: hold in WAIT without done ================");
+
+                pulse_start();
+
+                wait_for_req_and_check_id(0, "first issue sensor id = 0");
+                check(dut.state == dut.S_WAIT, "state enters WAIT after first issue");
+
+                repeat (10) @(posedge clk);
+
+                check(dut.state == dut.S_WAIT, "scheduler stays in WAIT without sens_done");
+                check(sens_req == 1'b0, "scheduler does not re-issue without sens_done");
+                check(sens_id == 0, "sens_id stays stable while waiting");
             end
         end
-    end
+    endtask
 
-    // -------------------------
-    // Simple sanity checks
-    // -------------------------
+    // =========================================================
+    // TEST 5
+    // stop_pulse should finish current sensor then stop
+    // =========================================================
+    task automatic test_safe_stop();
+        begin
+            $display("\n================ TEST 5: safe stop after current sensor ================");
 
-    always_ff @(posedge clk) begin
-        if (!reset) begin
-            if (sens_req) begin
-                // next cycle it should be 0 (because DUT sets default sens_req<=0 each cycle)
-            end
+            pulse_start();
+
+            // issue sensor 0
+            wait_for_req_and_check_id(0, "issued sensor 0 before stop");
+            check(dut.state == dut.S_WAIT, "state in WAIT for current sensor before stop");
+
+            // ask stop while waiting
+            pulse_stop();
+
+            // should still be waiting for current sensor, not jump immediately
+            repeat (2) @(posedge clk);
+            check(dut.state == dut.S_WAIT, "still WAIT after stop request before current sensor finishes");
+
+            // current sensor finishes
+            pulse_result_valid();
+
+            // should go idle instead of issuing next sensor
+            repeat (2) @(posedge clk);
+            check(dut.state == dut.S_IDLE, "scheduler returns to IDLE after current sensor finishes and stop pending");
+            check(sens_req == 1'b0, "no new sens_req after safe stop");
         end
-    end
+    endtask
 
-    logic sens_req_d;
-    always_ff @(posedge clk) begin
-        if (reset) sens_req_d <= 1'b0;
-        else       sens_req_d <= sens_req;
-    end
+    // =========================================================
+    // TEST 6
+    // stop during next WAIT should also work
+    // =========================================================
+    task automatic test_stop_after_one_advance();
+        begin
+            $display("\n================ TEST 6: stop after one advance ================");
 
-    always_ff @(posedge clk) begin
-        if (!reset) begin
-            if (sens_req && sens_req_d) begin
-                $error("sens_req stayed high for >1 cycle (not a pulse).");
-            end
+            pulse_start();
+
+            wait_for_req_and_check_id(0, "first issue sensor 0");
+            pulse_result_valid();
+
+            wait_for_req_and_check_id(1, "advanced to sensor 1");
+
+            pulse_stop();
+
+            repeat (2) @(posedge clk);
+            check(dut.state == dut.S_WAIT, "still WAIT on sensor 1 after stop request");
+
+            pulse_result_error();
+
+            repeat (2) @(posedge clk);
+            check(dut.state == dut.S_IDLE, "returns to IDLE after sensor 1 completes with stop pending");
+            check(sens_req == 1'b0, "no extra request after stop on second sensor");
         end
+    endtask
+
+    // =========================================================
+    // main
+    // =========================================================
+    initial begin
+        test_pass = 0;
+        test_fail = 0;
+
+        apply_reset();
+        test_start_first_issue();
+
+        apply_reset();
+        test_round_robin_valid();
+
+        apply_reset();
+        test_error_as_done();
+
+        apply_reset();
+        test_hold_in_wait_without_done();
+
+        apply_reset();
+        test_safe_stop();
+
+        apply_reset();
+        test_stop_after_one_advance();
+
+        $display("\n========================================================");
+        $display("@@@TEST SUMMARY: PASS=%0d FAIL=%0d", test_pass, test_fail);
+        $display("========================================================\n");
+
+        #100;
+        $finish;
     end
 
 endmodule
