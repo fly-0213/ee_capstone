@@ -13,8 +13,8 @@ module sensor_result_mux(
 
     input  logic        mpl_data_valid,
     input  logic        mpl_error,         
-    input  logic [19:0]  mpl_temp_raw,
-    input  logic [11:0]  mpl_pressure_raw,
+    input  logic [19:0]  mpl_pressure_raw,
+    input  logic [11:0]  mpl_temp_raw,
 
     output logic        result_valid,
     output logic [$clog2(SENS_NUM)-1:0] result_sensor_id,
@@ -47,7 +47,7 @@ module sensor_result_mux(
 
             S_MPL3115: begin
                 result_valid = mpl_data_valid;
-                result_data = {{(DATA_W-MPL_W){1'b0}}, mpl_temp_raw, mpl_pressure_raw};
+                result_data = {{(DATA_W-MPL_W){1'b0}}, mpl_pressure_raw, mpl_temp_raw};
                 result_error = mpl_error;
             end
         endcase

@@ -72,17 +72,18 @@ module sht30_ctrl (
             end
 
             S_SEND_CMD: begin
-                next_state = S_WAIT_CMD_DONE;
+                if (i2c_busy) begin
+                    next_state = S_WAIT_CMD_DONE;
+                end else begin
+                    next_state = S_SEND_CMD;
+                end
             end
 
             S_WAIT_CMD_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error) begin
-                        next_state = S_ERROR;
-                    end 
-                    else begin
-                        next_state = S_WAIT_MEAS;
-                    end 
+                if (i2c_ack_error) begin
+                    next_state = S_ERROR;
+                end else if (i2c_done) begin
+                    next_state = S_WAIT_MEAS;
                 end
             end
 
@@ -92,15 +93,18 @@ module sht30_ctrl (
             end
 
             S_READ_DATA: begin
-                next_state = S_WAIT_READ_DONE;
+                if (i2c_busy) begin
+                    next_state = S_WAIT_READ_DONE;
+                end else begin
+                    next_state = S_READ_DATA;
+                end
             end
 
             S_WAIT_READ_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_PARSE;
+                if (i2c_ack_error) begin
+                    next_state = S_ERROR;
+                end else if (i2c_done) begin
+                    next_state = S_PARSE;
                 end
             end
 

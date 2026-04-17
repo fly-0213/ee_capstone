@@ -78,11 +78,10 @@ module ads1115_ctrl (
             end
 
             S_WAIT_CFG_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_WAIT_CONV;
+                if (i2c_ack_error) begin
+                    next_state = S_ERROR;
+                end else if (i2c_done) begin
+                    next_state = S_WAIT_CONV;
                 end
             end
 
@@ -101,11 +100,10 @@ module ads1115_ctrl (
             end
 
             S_WAIT_READ_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_DONE;
+                if (i2c_ack_error) begin
+                    next_state = S_ERROR;
+                end else if (i2c_done) begin
+                    next_state = S_DONE;
                 end
             end
 

@@ -98,55 +98,59 @@ module mpl3115_ctrl (
             end
 
             S_WRITE_CTRL1_CFG: begin
-                next_state = S_WAIT_CTRL1_CFG_DONE;
+                if (i2c_busy)
+                    next_state = S_WAIT_CTRL1_CFG_DONE;
+                else
+                    next_state = S_WRITE_CTRL1_CFG;
             end
 
             S_WAIT_CTRL1_CFG_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_WRITE_PT_DATA_CFG;
-                end
+                if (i2c_ack_error)
+                    next_state = S_ERROR;
+                else if (i2c_done)
+                    next_state = S_WRITE_PT_DATA_CFG;
             end
 
             S_WRITE_PT_DATA_CFG: begin
-                next_state = S_WAIT_PT_DATA_CFG_DONE;
+                if (i2c_busy)
+                    next_state = S_WAIT_PT_DATA_CFG_DONE;
+                else
+                    next_state = S_WRITE_PT_DATA_CFG;
             end
 
             S_WAIT_PT_DATA_CFG_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_WRITE_CTRL1_OST;
-                end
+                if (i2c_ack_error)
+                    next_state = S_ERROR;
+                else if (i2c_done)
+                    next_state = S_WRITE_CTRL1_OST;
             end
 
             S_WRITE_CTRL1_OST: begin
-                next_state = S_WAIT_CTRL1_OST_DONE;
+                if (i2c_busy)
+                    next_state = S_WAIT_CTRL1_OST_DONE;
+                else
+                    next_state = S_WRITE_CTRL1_OST;
             end
 
             S_WAIT_CTRL1_OST_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_READ_STATUS;
-                end
+                if (i2c_ack_error)
+                    next_state = S_ERROR;
+                else if (i2c_done)
+                    next_state = S_READ_STATUS;
             end
 
             S_READ_STATUS: begin
-                next_state = S_WAIT_STATUS_DONE;
+                if (i2c_busy)
+                    next_state = S_WAIT_STATUS_DONE;
+                else
+                    next_state = S_READ_STATUS;
             end
 
             S_WAIT_STATUS_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_CHECK_STATUS;
-                end
+                if (i2c_ack_error)
+                    next_state = S_ERROR;
+                else if (i2c_done)
+                    next_state = S_CHECK_STATUS;
             end
 
             S_CHECK_STATUS: begin
@@ -157,16 +161,17 @@ module mpl3115_ctrl (
             end
 
             S_READ_DATA: begin
-                next_state = S_WAIT_READ_DATA_DONE;
+                if (i2c_busy)
+                    next_state = S_WAIT_READ_DATA_DONE;
+                else
+                    next_state = S_READ_DATA;
             end
 
             S_WAIT_READ_DATA_DONE: begin
-                if (i2c_done) begin
-                    if (i2c_ack_error)
-                        next_state = S_ERROR;
-                    else
-                        next_state = S_PARSE;
-                end
+                if (i2c_ack_error)
+                    next_state = S_ERROR;
+                else if (i2c_done)
+                    next_state = S_PARSE;
             end
 
             S_PARSE: begin
@@ -202,7 +207,7 @@ module mpl3115_ctrl (
         end else begin
             // latch STATUS byte after successful status read
             if (state == S_WAIT_STATUS_DONE && i2c_done && !i2c_ack_error) begin
-                status_reg <= i2c_rdata[7:0];
+                status_reg <= i2c_rdata[39:32];
             end
 
             // latch 5-byte measurement frame after successful data read
