@@ -2,23 +2,30 @@
 `include "packet_defs.svh"
 
 module packetizer_tb;
-    logic                    clk;
-    logic                    reset;
-    logic                    sample_valid;
-    logic [SENSOR_W-1:0]     sensor_id;
-    logic [DATA_W-1:0]       sensor_data;
-    logic [TS_W-1:0]         timestamp;
-    logic                    packet_ready;
 
-    logic [PACK_W-1:0]       packet_out;
-    logic                    packet_valid;
+    logic                   clk;
+    logic                   reset;
+    logic                   result_valid;
+    logic                   result_error;
+    logic [SENSOR_W-1:0]    sensor_id;
+    logic [DATA_W-1:0]      sensor_data;
+    logic [TS_W-1:0]        timestamp;
+    logic                   packet_ready;
 
-    packet_t expected_pkt;
+    logic [PACK_W-1:0]      packet_out;
+    logic                   packet_valid;
+
+    int test_pass;
+    int test_fail;
+
+    packet_t exp_pkt;
+    packet_t got_pkt;
 
     packetizer dut (
         .clk         (clk),
         .reset       (reset),
-        .sample_valid(sample_valid),
+        .result_valid(result_valid),
+        .result_error(result_error),
         .sensor_id   (sensor_id),
         .sensor_data (sensor_data),
         .timestamp   (timestamp),
@@ -27,148 +34,262 @@ module packetizer_tb;
         .packet_valid(packet_valid)
     );
 
-    initial begin
-        clk = 0;
-        forever #5 clk = ~clk;   // 10 ns period
-    end
+    initial clk = 1'b0;
+    always #5 clk = ~clk;
 
-    // -----------------------------
-    // Task: compare packet output
-    // -----------------------------
-    task automatic check_packet(
-        input logic [SENSOR_W-1:0] exp_sensor,
-        input logic [DATA_W-1:0]   exp_data,
-        input logic [TS_W-1:0]     exp_ts
-    );
-    begin
-        expected_pkt.head   = HEAD_MAGIC;
-        expected_pkt.sensor = exp_sensor;
-        expected_pkt.ts     = exp_ts;
-        expected_pkt.data   = exp_data;
-        expected_pkt.flag   = '0;
-        expected_pkt.crc    = '0;
+    logic prev_packet_valid;
 
-        if (packet_valid !== 1'b1) begin
-            $display("ERROR @ %0t: packet_valid is not 1 when expected", $time);
-            $fatal;
-        end
-
-        if (packet_out !== expected_pkt) begin
-            $display("ERROR @ %0t: packet_out mismatch", $time);
-            $display("Expected = %h", expected_pkt);
-            $display("Got      = %h", packet_out);
-            $fatal;
+    always @(posedge clk) begin
+        if (reset) begin
+            prev_packet_valid <= packet_valid;
         end else begin
-            $display("PASS  @ %0t: packet matched. packet_out = %h", $time, packet_out);
+            if (packet_valid != prev_packet_valid || result_valid || result_error) begin
+                $display("@@@[TRACE] t=%0t result_valid=%0b result_error=%0b sensor_id=%0d sensor_data=0x%0h timestamp=0x%0h ready=%0b | packet_valid=%0b packet_out=0x%0h",
+                         $time, result_valid, result_error, sensor_id, sensor_data, timestamp,
+                         packet_ready, packet_valid, packet_out);
+            end
+            prev_packet_valid <= packet_valid;
         end
     end
+
+
+    task automatic check(input bit cond, input string msg);
+        begin
+            if (cond) begin
+                $display("@@@[PASS] %s", msg);
+                test_pass++;
+            end else begin
+                $display("@@@[FAIL] %s", msg);
+                test_fail++;
+            end
+        end
     endtask
 
+    task automatic apply_reset();
+        begin
+            reset        = 1'b1;
+            result_valid = 1'b0;
+            result_error = 1'b0;
+            sensor_id    = '0;
+            sensor_data  = '0;
+            timestamp    = '0;
+            packet_ready = 1'b0;
+
+            repeat (5) @(posedge clk);
+            reset = 1'b0;
+            repeat (2) @(posedge clk);
+        end
+    endtask
+
+    task automatic load_inputs(
+        input logic                  in_result_valid,
+        input logic                  in_result_error,
+        input logic [SENSOR_W-1:0]   in_sensor_id,
+        input logic [DATA_W-1:0]     in_sensor_data,
+        input logic [TS_W-1:0]       in_timestamp,
+        input logic                  in_packet_ready
+    );
+        begin
+            result_valid = in_result_valid;
+            result_error = in_result_error;
+            sensor_id    = in_sensor_id;
+            sensor_data  = in_sensor_data;
+            timestamp    = in_timestamp;
+            packet_ready = in_packet_ready;
+        end
+    endtask
+
+    task automatic build_expected_packet(
+        input logic [SENSOR_W-1:0] in_sensor_id,
+        input logic [DATA_W-1:0]   in_sensor_data,
+        input logic [TS_W-1:0]     in_timestamp,
+        input logic                in_error
+    );
+        begin
+            exp_pkt.head   = HEAD_MAGIC;
+            exp_pkt.sensor = in_sensor_id;
+            exp_pkt.ts     = in_timestamp;
+            exp_pkt.data   = in_sensor_data;
+            exp_pkt.flag   = '0;
+            exp_pkt.flag[0]= in_error;
+            exp_pkt.crc    = '0;
+        end
+    endtask
+
+    task automatic capture_packet();
+        begin
+            got_pkt = packet_out;
+        end
+    endtask
+
+    task automatic check_packet_fields(input string tag);
+        begin
+            capture_packet();
+            check(got_pkt.head   == exp_pkt.head,   {tag, " head correct"});
+            check(got_pkt.sensor == exp_pkt.sensor, {tag, " sensor field correct"});
+            check(got_pkt.ts     == exp_pkt.ts,     {tag, " timestamp field correct"});
+            check(got_pkt.data   == exp_pkt.data,   {tag, " data field correct"});
+            check(got_pkt.flag   == exp_pkt.flag,   {tag, " flag field correct"});
+            check(got_pkt.crc    == exp_pkt.crc,    {tag, " crc field correct"});
+        end
+    endtask
+
+    // =========================================================
+    // TEST 1: normal valid packet
+    // =========================================================
+    task automatic test_normal_valid_packet();
+        begin
+            $display("\n================ TEST 1: normal valid packet ================");
+
+            build_expected_packet(S_ADS1115, 32'h0000_1234, 16'h00A5, 1'b0);
+
+            load_inputs(
+                1'b1,                 // result_valid
+                1'b0,                 // result_error
+                S_ADS1115,
+                32'h0000_1234,
+                16'h00A5,
+                1'b1                  // packet_ready
+            );
+
+            @(posedge clk);
+            #1;
+
+            check(packet_valid == 1'b1, "packet_valid asserted for normal valid packet");
+            check_packet_fields("normal valid");
+
+            // next cycle should drop packet_valid
+            load_inputs(1'b0, 1'b0, '0, '0, '0, 1'b1);
+            @(posedge clk);
+            #1;
+            check(packet_valid == 1'b0, "packet_valid drops after one cycle");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 2: error packet
+    // =========================================================
+    task automatic test_error_packet();
+        begin
+            $display("\n================ TEST 2: error packet ================");
+
+            build_expected_packet(S_SHT30, 32'h6677_8899, 16'h0123, 1'b1);
+
+            load_inputs(
+                1'b0,                 // result_valid
+                1'b1,                 // result_error
+                S_SHT30,
+                32'h6677_8899,
+                16'h0123,
+                1'b1
+            );
+
+            @(posedge clk);
+            #1;
+
+            check(packet_valid == 1'b1, "packet_valid asserted for error packet");
+            check_packet_fields("error packet");
+            check(got_pkt.flag[0] == 1'b1, "flag[0] marks error packet");
+
+            load_inputs(1'b0, 1'b0, '0, '0, '0, 1'b1);
+            @(posedge clk);
+            #1;
+            check(packet_valid == 1'b0, "packet_valid drops after error packet pulse");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 3: packet_ready=0 blocks packet
+    // =========================================================
+    task automatic test_ready_low_blocks_packet();
+        begin
+            $display("\n================ TEST 3: ready low blocks packet ================");
+
+            load_inputs(
+                1'b1,
+                1'b0,
+                S_MPL3115,
+                32'h1234_5678,
+                16'h0F0F,
+                1'b0
+            );
+
+            @(posedge clk);
+            #1;
+
+            check(packet_valid == 1'b0, "packet_valid stays low when packet_ready=0");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 4: both result_valid and result_error high
+    // packet_fire still sends, error bit should be 1
+    // =========================================================
+    task automatic test_valid_and_error_both_high();
+        begin
+            $display("\n================ TEST 4: valid and error both high ================");
+
+            build_expected_packet(S_MPL3115, 32'h1234_5678, 16'h00FF, 1'b1);
+
+            load_inputs(
+                1'b1,
+                1'b1,
+                S_MPL3115,
+                32'h1234_5678,
+                16'h00FF,
+                1'b1
+            );
+
+            @(posedge clk);
+            #1;
+
+            check(packet_valid == 1'b1, "packet_valid asserted when valid and error both high");
+            check_packet_fields("valid+error packet");
+            check(got_pkt.flag[0] == 1'b1, "flag[0] still indicates error");
+        end
+    endtask
+
+    // =========================================================
+    // TEST 5: reset clears outputs
+    // =========================================================
+    task automatic test_reset_behavior();
+        begin
+            $display("\n================ TEST 5: reset behavior ================");
+
+            apply_reset();
+            #1;
+
+            check(packet_valid == 1'b0, "packet_valid cleared by reset");
+            check(packet_out == '0,      "packet_out cleared by reset");
+        end
+    endtask
+
+    // =========================================================
+    // Main
+    // =========================================================
     initial begin
-        $display("==== Start packetizer testbench ====");
+        test_pass = 0;
+        test_fail = 0;
 
-        // init
-        reset        = 1'b1;
-        sample_valid = 1'b0;
-        sensor_id    = '0;
-        sensor_data  = '0;
-        timestamp    = '0;
-        packet_ready = 1'b1;   // currently unused by DUT
+        apply_reset();
+        test_normal_valid_packet();
 
-        // hold reset for a couple cycles
-        repeat (2) @(posedge clk);
+        apply_reset();
+        test_error_packet();
 
-        // check reset outputs
-        if (packet_out !== '0 || packet_valid !== 1'b0) begin
-            $display("ERROR @ %0t: reset state incorrect", $time);
-            $display("packet_out   = %h", packet_out);
-            $display("packet_valid = %b", packet_valid);
-            $fatal;
-        end else begin
-            $display("PASS  @ %0t: reset state correct", $time);
-        end
+        apply_reset();
+        test_ready_low_blocks_packet();
 
-        // release reset
-        reset = 1'b0;
-        @(posedge clk);
+        apply_reset();
+        test_valid_and_error_both_high();
 
-        // -------------------------------------------------
-        // Test 1: send one valid sample
-        // -------------------------------------------------
-        sensor_id    = S_TEMP;
-        sensor_data  = 52'h0000_0000_12345;
-        timestamp    = 32'h1234_5678;
-        sample_valid = 1'b1;
+        test_reset_behavior();
 
-        @(posedge clk);
-        #1;
-        check_packet(S_TEMP, 52'h0000_0000_12345, 32'h1234_5678);
+        $display("\n========================================================");
+        $display("@@@TEST SUMMARY: PASS=%0d FAIL=%0d", test_pass, test_fail);
+        $display("========================================================\n");
 
-        // deassert valid
-        sample_valid = 1'b0;
-        @(posedge clk);
-        #1;
-
-        if (packet_valid !== 1'b0) begin
-            $display("ERROR @ %0t: packet_valid should deassert when sample_valid=0", $time);
-            $fatal;
-        end else begin
-            $display("PASS  @ %0t: packet_valid deasserted correctly", $time);
-        end
-
-        // packet_out should hold previous value
-        if (packet_out !== expected_pkt) begin
-            $display("ERROR @ %0t: packet_out did not hold previous packet", $time);
-            $fatal;
-        end else begin
-            $display("PASS  @ %0t: packet_out held previous value correctly", $time);
-        end
-
-        // -------------------------------------------------
-        // Test 2: send another valid sample
-        // -------------------------------------------------
-        sensor_id    = S_LIGHT;
-        sensor_data  = 52'h0000_0000_ABCDE;
-        timestamp    = 32'hCAFE_BABE;
-        sample_valid = 1'b1;
-
-        @(posedge clk);
-        #1;
-        check_packet(S_LIGHT, 52'h0000_0000_ABCDE, 32'hCAFE_BABE);
-
-        // -------------------------------------------------
-        // Test 3: packet_ready toggles (should not matter yet)
-        // -------------------------------------------------
-        sample_valid = 1'b0;
-        packet_ready = 1'b0;
-        @(posedge clk);
-        #1;
-
-        if (packet_valid !== 1'b0) begin
-            $display("ERROR @ %0t: packet_valid should be 0 here", $time);
-            $fatal;
-        end else begin
-            $display("PASS  @ %0t: packet_ready currently has no effect, as expected", $time);
-        end
-
-        // -------------------------------------------------
-        // Test 4: one more packet with different sensor
-        // -------------------------------------------------
-        packet_ready = 1'b1;
-        sensor_id    = S_HUMN;
-        sensor_data  = 52'h0000_0000_0F0F0;
-        timestamp    = 32'h0000_00AA;
-        sample_valid = 1'b1;
-
-        @(posedge clk);
-        #1;
-        check_packet(S_HUMN, 52'h0000_0000_0F0F0, 32'h0000_00AA);
-
-        // finish
-        sample_valid = 1'b0;
-        @(posedge clk);
-
-        $display("==== All packetizer tests passed ====");
+        #100;
         $finish;
     end
 
