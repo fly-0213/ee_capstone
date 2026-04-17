@@ -61,6 +61,8 @@ module scheduler_os#(parameter int SENS_NUM=3)(
                     if (sens_done) begin
                         if (stop_pending) begin
                             state <= S_IDLE;
+                        end else if (result_error) begin
+                            state <= S_IDLE;
                         end else if (cur_id == SENS_NUM-1) begin
                             state <= S_IDLE;   // one-shot: last sensor finished
                         end else begin
