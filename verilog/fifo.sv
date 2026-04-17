@@ -4,9 +4,10 @@ module fifo#(parameter int DEPTH  = 8)(
     input                     reset,
     input                     write_valid,
     input        [PACK_W-1:0] packet_in,
-    input                     read_valid,
+    input                     read_en,
 
     output logic [PACK_W-1:0] packet_out,
+    output logic              packet_out_valid,
     output logic              full,
     output logic              empty
     
@@ -28,7 +29,7 @@ module fifo#(parameter int DEPTH  = 8)(
         empty = (count == 0);
         full  = (count == DEPTH);
         do_write = write_valid && !full;
-        do_read  = read_valid  && !empty;
+        do_read  = read_en  && !empty;
         head_n       = head;
         tail_n       = tail;
         count_n      = count;
@@ -36,7 +37,6 @@ module fifo#(parameter int DEPTH  = 8)(
 
         if (do_read) begin
             packet_out_n = list[head];
-
             if (head == DEPTH-1)
                 head_n = '0;
             else
@@ -65,7 +65,9 @@ module fifo#(parameter int DEPTH  = 8)(
             tail <= '0;
             count <= '0;
             packet_out <= '0;
+            packet_out_valid <= 1'b0;
         end else begin
+            packet_out_valid <= do_read;
             if (do_write) begin
                 list[tail] <= packet_in;
             end 
