@@ -60,8 +60,8 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH   = test/scheduler_tb.sv
-SOURCES     = verilog/scheduler.sv verilog/time.sv
+TESTBENCH   = test/sensor_scheduler_os_chain_tb.sv
+SOURCES     = verilog/scheduler_os.sv verilog/time.sv verilog/sensor_i2c_mux.sv verilog/sensor_result_mux.sv verilog/i2c_master.sv verilog/ads1115_ctrl.sv verilog/sht30_ctrl.sv verilog/mpl3115_ctrl.sv
 MODULE_TOP  = 
 
 # LAB1 TODO: after you've finished working with the tutorial module (two_bit_pred),
