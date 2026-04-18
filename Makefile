@@ -33,7 +33,7 @@
 export CLOCK_PERIOD = 10000.0
 
 # the Verilog Compiler command and arguments
-VCS = SW_VCS=2020.12-SP2-1 vcs -sverilog +vc -Mupdate -line -full64 -kdb -lca -nc \
+VCS = SW_VCS=2020.12-SP2-1 vcs -sverilog +vc -line -full64 -kdb -lca -nc \
       -debug_access+all+reverse $(VCS_BAD_WARNINGS) +define+CLOCK_PERIOD=$(CLOCK_PERIOD)ps \
       +incdir+. +incdir+./verilog +incdir+./test
 # a SYNTH define is added when compiling for synthesis that can be used in testbenches
@@ -60,8 +60,10 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-TESTBENCH = test/sensor_scheduler_full_uart_tb.sv
-SOURCES = verilog/uart_tx.sv \
+TESTBENCH = test/sensor_fpga_top_tb.sv
+COMMON_HDRS = packet_defs.svh
+SOURCES = verilog/sensor_fpga_top.sv \
+		  verilog/uart_tx.sv \
 		  verilog/pkt_serializer.sv \
 		  verilog/fifo.sv \
 		  verilog/scheduler_os.sv \
@@ -87,7 +89,7 @@ MODULE_TOP  =
 # the .vg rule is automatically generated below when the name of the file matches its top level module
 
 # the normal simulation executable will run your testbench on the original modules
-simv: $(TESTBENCH) $(SOURCES)
+simv: $(TESTBENCH) $(SOURCES) $(COMMON_HDRS)
 	@$(call PRINT_COLOR, 5, compiling the simulation executable $@)
 	@$(call PRINT_COLOR, 3, NOTE: if this is slow to startup: run '"module load vcs verdi synopsys-synth"')
 	$(VCS) $^ -o $@
@@ -120,7 +122,7 @@ $(MODULE_TOP).vg: $(SOURCES) | $(TCL_SCRIPT)
 $(SYNTH_FILES): $(SOURCES)
 
 # the synthesis executable runs your testbench on the synthesized versions of your modules
-syn_simv: $(TESTBENCH) $(SYNTH_FILES)
+syn_simv: $(TESTBENCH) $(SYNTH_FILES) $(COMMON_HDRS)
 	@$(call PRINT_COLOR, 5, compiling the synthesis executable $@)
 	$(VCS) +define+SYNTH $^ $(LIB) -o $@
 	@$(call PRINT_COLOR, 6, finished compiling $@)
