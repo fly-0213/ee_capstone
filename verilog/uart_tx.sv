@@ -8,7 +8,8 @@ module uart_tx#(parameter int CLKS_PER_BIT = CLK_FREQ / BAUD_RATE
 
     output logic  tx_serial,
     output logic  tx_busy,
-    output logic  tx_done
+    output logic  tx_done,
+    output logic  tx_ready
     
 );
 
@@ -23,7 +24,8 @@ module uart_tx#(parameter int CLKS_PER_BIT = CLK_FREQ / BAUD_RATE
     logic [1:0]state;
     logic [7:0]byte_mem;
     logic [$clog2(8)-1:0] bit_count;
-    logic [$clog2(CLKS_PER_BIT)-1:0] clk_count;
+    logic [$clog2(CLKS_PER_BIT+1)-1:0] clk_count;
+    assign tx_ready = (state == S_IDLE);
 
     always_ff @(posedge clk) begin
         if (reset) begin
@@ -74,18 +76,23 @@ module uart_tx#(parameter int CLKS_PER_BIT = CLK_FREQ / BAUD_RATE
                 end 
                 S_STOP: begin
                     tx_serial <= stop_bit;
+                    tx_busy   <= 1'b1;
                     if (clk_count == CLKS_PER_BIT-1) begin
                         clk_count <= '0;
                         tx_busy <= 1'b0;
                         tx_done <= 1'b1;
                         state <= S_IDLE;
                     end else begin
-                        tx_busy   <= 1'b1;
                         clk_count <= clk_count + 1'b1;
                     end 
                 end
                 default: begin
                     state <= S_IDLE;
+                    tx_serial <= 1'b1;
+                    tx_busy   <= 1'b0;
+                    tx_done   <= 1'b0;
+                    clk_count <= '0;
+                    bit_count <= '0;
                 end 
             endcase
         end 
