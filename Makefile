@@ -60,19 +60,20 @@ SHELL := $(SHELL) -o pipefail
 ####################################
 
 # You should only need to modify this section, and only the following variables:
-//TESTBENCH = test/sensor_scheduler_packetizer_fifo_tb.sv
-//SOURCES = verilog/fifo.sv \
+TESTBENCH = test/sensor_scheduler_packetizer_fifo_serializer_tb.sv
+SOURCES = verilog/pkt_serializer.sv\
+		  verilog/fifo.sv \
 		  verilog/scheduler_os.sv \
-          verilog/ads1115_ctrl.sv \
-          verilog/sht30_ctrl.sv \
-          verilog/mpl3115_ctrl.sv \
-          verilog/sensor_i2c_mux.sv \
-          verilog/sensor_result_mux.sv \
-          verilog/packetizer.sv \
-          verilog/i2c_master.sv \
-          verilog/time.sv
-TESTBENCH   = test/pkt_serializer_tb.sv
-SOURCES     = verilog/pkt_serializer.sv verilog/time.sv
+		  verilog/ads1115_ctrl.sv \
+		  verilog/sht30_ctrl.sv \
+		  verilog/mpl3115_ctrl.sv \
+		  verilog/sensor_i2c_mux.sv \
+		  verilog/sensor_result_mux.sv \
+		  verilog/packetizer.sv \
+		  verilog/i2c_master.sv \
+		  verilog/time.sv
+//TESTBENCH   = test/pkt_serializer_tb.sv
+//SOURCES     = verilog/pkt_serializer.sv verilog/time.sv
 MODULE_TOP  = 
 
 # LAB1 TODO: after you've finished working with the tutorial module (two_bit_pred),
