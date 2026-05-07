@@ -33,7 +33,7 @@ module sht30_ctrl (
 
     // Wait time after measurement command.
     // Example: for 50 MHz clock, 1_000_000 cycles = 20 ms.
-    localparam int MEAS_WAIT_CYCLES = 1_000_000;
+    localparam int MEAS_WAIT_CYCLES = 5_000_000;
 
     typedef enum logic [3:0] {
         S_IDLE           = 4'd0,

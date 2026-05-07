@@ -125,7 +125,8 @@ module sensor_fpga_top #(
     logic [11:0] mpl_temp_raw;
     logic        mpl_error;
 
-    assign ads_start = sens_req && (sens_id == S_ADS1115);
+    //assign ads_start = sens_req && (sens_id == S_ADS1115);
+    assign ads_start = 1'b0;
     assign sht_start = sens_req && (sens_id == S_SHT30);
     assign mpl_start = sens_req && (sens_id == S_MPL3115);
 
@@ -176,7 +177,8 @@ module sensor_fpga_top #(
     //            three sensor controller           //
     //                                              //
     //////////////////////////////////////////////////
-
+    // ADS1115 is temporarily kept but disabled.
+    // ads_start is forced to 0 above, so this controller will not access I2C.
     ads1115_ctrl u_ads (
         .clk(clk),
         .reset(reset),
@@ -413,7 +415,9 @@ module sensor_fpga_top #(
         .tx_ready(tx_ready)
     );
 
-    assign system_busy = ads_busy || sht_busy || mpl_busy ||
-                        !fifo_empty || ser_busy || tx_busy;
+    //assign system_busy = ads_busy || sht_busy || mpl_busy ||
+    //                    !fifo_empty || ser_busy || tx_busy;
+    assign system_busy = sht_busy || mpl_busy ||
+                    !fifo_empty || ser_busy || tx_busy;
 
 endmodule

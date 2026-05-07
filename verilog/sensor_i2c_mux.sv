@@ -102,6 +102,7 @@ module sensor_i2c_mux(
         mas_use_reg_addr = '0;
         case(sens_id)
             S_ADS1115: begin
+                /*
                 mas_start = ads_i2c_start;
                 mas_rw = ads_i2c_rw;    
                 mas_dev_addr = ads_i2c_dev_addr;
@@ -109,6 +110,15 @@ module sensor_i2c_mux(
                 mas_num_bytes = {1'b0, ads_i2c_num_bytes}; 
                 mas_wdata = ads_i2c_wdata;
                 mas_use_reg_addr = 1'b1;
+                */
+
+                mas_start = 1'b0;
+                mas_rw = 1'b0;
+                mas_dev_addr = 7'd0;
+                mas_reg_addr = 8'd0;
+                mas_num_bytes = 3'd0;
+                mas_wdata = 16'd0;
+                mas_use_reg_addr = 1'b0;
             end
             S_SHT30: begin
                 mas_start = sht_i2c_start;
@@ -157,10 +167,17 @@ module sensor_i2c_mux(
         mpl_i2c_ack_error = 1'b0;
         case(sens_id)
             S_ADS1115: begin
+                /*
                 ads_i2c_busy = mas_busy;
                 ads_i2c_done = mas_done;    
                 ads_i2c_rdata = mas_rdata[47:32];
                 ads_i2c_ack_error = mas_ack_error;
+                */
+                ads_i2c_busy = 1'b0;
+                ads_i2c_done = 1'b0;
+                ads_i2c_rdata = 16'd0;
+                //ads_i2c_ack_error = 1'b1;
+                ads_i2c_ack_error = 1'b0;
             end
             S_SHT30: begin
                 sht_i2c_busy = mas_busy;

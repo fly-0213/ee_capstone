@@ -34,9 +34,14 @@ module sensor_result_mux(
 
         case (sens_id)
             S_ADS1115: begin
+            /*
                 result_valid = ads_data_valid;
                 result_data = {{(DATA_W-ADS_W){1'b0}}, ads_data_out};
                 result_error = ads_error;
+            */
+                result_valid = 1'b0;
+                result_data  = '0;
+                result_error = 1'b0;
             end
 
             S_SHT30: begin

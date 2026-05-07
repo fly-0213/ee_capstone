@@ -1,3 +1,5 @@
+`include "packet_defs.svh"
+
 module scheduler_os#(parameter int SENS_NUM=3)(
     input                               clk,
     input                               reset,
@@ -21,19 +23,30 @@ module scheduler_os#(parameter int SENS_NUM=3)(
 
     assign sens_done = result_valid || result_error;
 
-    function automatic logic [$clog2(SENS_NUM)-1:0] inc_id(
+    function automatic logic [$clog2(SENS_NUM)-1:0] next_active_id(
         input logic [$clog2(SENS_NUM)-1:0] id
     );
-        if (id == SENS_NUM-1) inc_id = '0;
-        else                  inc_id = id + 1'b1;
+        case (id)
+            S_SHT30:   next_active_id = S_MPL3115;
+            S_MPL3115: next_active_id = S_SHT30;
+            default:   next_active_id = S_SHT30;
+        endcase
+    endfunction
+
+    function automatic logic is_last_active_sensor(
+        input logic [$clog2(SENS_NUM)-1:0] id
+    );
+        is_last_active_sensor = (id == S_MPL3115);
     endfunction
 
     always_ff @(posedge clk) begin
         if (reset) begin
             state        <= S_IDLE;
             stop_pending <= 1'b0;
-            cur_id       <= '0;
-            sens_id      <= '0;
+            //cur_id  <= '0;
+            cur_id  <= S_SHT30;
+            //sens_id <= '0;
+            sens_id      <= S_SHT30;
             sens_req     <= 1'b0;
         end else begin
             sens_req <= 1'b0;
@@ -42,8 +55,10 @@ module scheduler_os#(parameter int SENS_NUM=3)(
                 S_IDLE: begin
                     stop_pending <= 1'b0;
                     if (start_pulse) begin
-                        cur_id  <= '0;
-                        sens_id <= '0;
+                        //cur_id  <= '0;
+                        cur_id  <= S_SHT30;
+                        //sens_id <= '0;
+                        sens_id <= S_SHT30;
                         state   <= S_ISSUE;
                     end
                 end
@@ -63,10 +78,12 @@ module scheduler_os#(parameter int SENS_NUM=3)(
                             state <= S_IDLE;
                         end else if (result_error) begin
                             state <= S_IDLE;
-                        end else if (cur_id == SENS_NUM-1) begin
+                        //end else if (cur_id == SENS_NUM-1) begin
+                        end else if (is_last_active_sensor(cur_id)) begin
                             state <= S_IDLE;   // one-shot: last sensor finished
                         end else begin
-                            cur_id <= inc_id(cur_id);
+                            // cur_id <= inc_id(cur_id);
+                            cur_id <= next_active_id(cur_id);
                             state  <= S_ISSUE;
                         end
                     end
